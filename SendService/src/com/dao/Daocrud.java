@@ -33,37 +33,37 @@ import com.google.gson.Gson;
 
 public class Daocrud {
 
-//	public static void main(String[] args) {
-//		new Daocrud();
-//	}
-//
-//	public Daocrud() {
-//		// try {
-//		// updateConsumeOrder2("8effde89737ca99b");
-//		// } catch (CommonException e) {
-//		// // TODO Auto-generated catch block
-//		// e.printStackTrace();
-//		// }
-//		// System.out.println(getMchOrder("8effde89737ca99b"));
-//		// try {
-//		// System.out.println(queryRecordCount("8effde89737ca99b"));
-//		// } catch (CommonException e) {
-//		// // TODO Auto-generated catch block
-//		// e.printStackTrace();
-//		// }
-//
-//		try {
-//			// insertConsumeOrder("4", "8effde89737ca99b");
-//			// System.out.println(queryCardRemainTimes(1 + ""));
-//			List<BeautyCard> queryBeautyCard = queryBeautyCard("爱看到美");
-//			for(int i = 0;i<queryBeautyCard.size();i++){
-//				System.out.println(queryBeautyCard.get(i).getCustom_times());
-//			}
-//		} catch (CommonException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//	}
+	// public static void main(String[] args) {
+	// new Daocrud();
+	// }
+	//
+	// public Daocrud() {
+	// // try {
+	// // updateConsumeOrder2("8effde89737ca99b");
+	// // } catch (CommonException e) {
+	// // // TODO Auto-generated catch block
+	// // e.printStackTrace();
+	// // }
+	// // System.out.println(getMchOrder("8effde89737ca99b"));
+	// // try {
+	// // System.out.println(queryRecordCount("8effde89737ca99b"));
+	// // } catch (CommonException e) {
+	// // // TODO Auto-generated catch block
+	// // e.printStackTrace();
+	// // }
+	//
+	// try {
+	// // insertConsumeOrder("4", "8effde89737ca99b");
+	// // System.out.println(queryCardRemainTimes(1 + ""));
+	// List<BeautyCard> queryBeautyCard = queryBeautyCard("爱看到美");
+	// for(int i = 0;i<queryBeautyCard.size();i++){
+	// System.out.println(queryBeautyCard.get(i).getCustom_times());
+	// }
+	// } catch (CommonException e) {
+	// // TODO Auto-generated catch block
+	// e.printStackTrace();
+	// }
+	// }
 
 	/**
 	 * 美容院注册
@@ -832,8 +832,8 @@ public class Daocrud {
 				list.add(machineType);
 			}
 		} catch (SQLException e) {
-//			LogRecord.writeLog(e.getMessage());
-//			throw new CommonException("查询美容院美容卡失败");
+			// LogRecord.writeLog(e.getMessage());
+			// throw new CommonException("查询美容院美容卡失败");
 			e.printStackTrace();
 		} finally {
 			JdbcUtils.close(executeQuery, prepareStatement, conn);
@@ -1053,7 +1053,7 @@ public class Daocrud {
 		Connection conn = JdbcUtils.getConn();
 		ResultSet executeQuery = null;
 		PreparedStatement prepareStatement = null;
-		String sql = "select * from buy_card_record where BUY_CARD_CUSTOMER = ?";
+		String sql = "select * from buy_card_record where BUY_CARD_CUSTOMER = ? order by CUSTOM_TIMES ASC";
 		try {
 			prepareStatement = conn.prepareStatement(sql);
 			prepareStatement.setString(1, customer_name);
@@ -1236,9 +1236,10 @@ public class Daocrud {
 	 * @throws CommonException
 	 * 
 	 */
-	public String updateConsumeRecords(String beauty_times, String customer_times, String card_id, String beauty,
+	public String updateConsumeRecords(String beauty_times, String customer_times, String customer_name, String beauty,
 			String cpu_id) throws CommonException {
-		String[] return_result = new String[] { "next_default", "next_default" };
+		// 数组第一个为美容院的下次扣款，第二个为客户的下次扣款，第三个为客户扣款的卡ID，第四个为扣款ID的名称，第五个为该卡剩余次数
+		String[] return_result = new String[] { "next_default", "next_default", "0", "card_name", "0" };
 		Connection conn = JdbcUtils.getConn();
 		ResultSet executeQuery = null;
 		PreparedStatement prepareStatement = null;
@@ -1260,17 +1261,26 @@ public class Daocrud {
 				}
 			}
 			if (customer_times.equals("0")) {
-				// 判断下次是否还有剩余
-				String cardRemainTime = queryCardRemainTimes(card_id);
-				if (Integer.parseInt(cardRemainTime) > 0) {
-					prepareStatement = conn.prepareStatement(sql1);
-					prepareStatement.setString(1, card_id);
-					prepareStatement.executeUpdate();
-					// 添加消费记录信息
-					insertConsumeOrder(card_id, cpu_id);
-					return_result[1] = "next_yes";
-				} else {
-					return_result[1] = "next_no";
+				// 遍历客户所有购买的卡，查询还未消费的，按顺序进行消费，如果全都消费完成，返回特征值
+				List<BuyCardRecord> queryBuyCardRecord = queryBuyCardRecord(customer_name);
+				for (int i = 0; i < queryBuyCardRecord.size(); i++) {
+					if (queryBuyCardRecord.get(i).getRemain_times() != 0) {
+						int card_id = queryBuyCardRecord.get(i).getId();
+						// 将该卡减去60分钟
+						prepareStatement = conn.prepareStatement(sql1);
+						prepareStatement.setInt(1, card_id);
+						prepareStatement.executeUpdate();
+						// 添加消费记录信息
+						insertConsumeOrder(card_id + "", cpu_id);
+						return_result[1] = "next_yes";
+						return_result[2] = card_id + "";
+						return_result[3] = queryBuyCardRecord.get(i).getBuy_card_name();
+						return_result[4] = (queryBuyCardRecord.get(i).getRemain_times() / 60 - 1) + "";
+						break;
+					}
+					if (i == queryBuyCardRecord.size() - 1) {
+						return_result[1] = "next_no";
+					}
 				}
 			}
 		} catch (SQLException e) {
@@ -1278,6 +1288,7 @@ public class Daocrud {
 		} finally {
 			JdbcUtils.close(executeQuery, prepareStatement, conn);
 		}
-		return return_result[0] + "," + return_result[1];
+		return return_result[0] + "," + return_result[1] + "," + return_result[2] + "," + return_result[3] + ","
+				+ return_result[4];
 	}
 }

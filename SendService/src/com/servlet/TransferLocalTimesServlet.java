@@ -38,13 +38,13 @@ public class TransferLocalTimesServlet extends HttpServlet {
 		response.setCharacterEncoding("UTF-8");
 		String beauty_local_times = request.getParameter("beauty_local_times");
 		String customer_local_times = request.getParameter("customer_local_times");
-		String card_id = request.getParameter("card_id");
+		String customer_name = request.getParameter("customer_name");
 		String beauty = request.getParameter("beauty");
 		String cpu_id = request.getParameter("cpu_id");
-		System.out.println(beauty_local_times+".."+customer_local_times+".."+card_id+".."+beauty+".."+cpu_id);
+		System.out.println(beauty_local_times+".."+customer_local_times+".."+customer_name+".."+beauty+".."+cpu_id);
 		Daocrud daocrud = new Daocrud();
 		try {
-			String return_result = daocrud.updateConsumeRecords(beauty_local_times, customer_local_times, card_id,
+			String return_result = daocrud.updateConsumeRecords(beauty_local_times, customer_local_times, customer_name,
 					beauty, cpu_id);
 			System.out.println("success,"+return_result);
 			response.getWriter().append("success,"+return_result);
