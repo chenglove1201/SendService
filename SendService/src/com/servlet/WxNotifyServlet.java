@@ -72,11 +72,17 @@ public class WxNotifyServlet extends HttpServlet {
 					String first_String = attach.split(",")[0];
 					if (first_String.equals("beauty_buy")) {
 						try {
-							if (daocrud.addAdvanceCharge(attach)) {
-								System.out.println("成功");
-								response.getWriter().write("SUCCESS");
+							customer = attach.split(",")[1];
+							// 插入微信支付成功返回数据
+							if (daocrud.insertWxNotify(customer, analysisResponseMap)) {
+								if (daocrud.addAdvanceCharge(attach)) {
+									System.out.println("成功");
+									response.getWriter().write("SUCCESS");
+								} else {
+									System.out.println("失败");
+								}
 							} else {
-								System.out.println("失败");
+								PrintWriterMap.getPwInstance().getPw(customer).println("false");
 							}
 						} catch (CommonException e) {
 							System.out.println("异常失败");
@@ -97,6 +103,8 @@ public class WxNotifyServlet extends HttpServlet {
 							PrintWriterMap.getPwInstance().getPw(customer).println("false");
 						}
 					}
+				} else {// 如果存在，通知微信支付不再回调
+					response.getWriter().write("SUCCESS");
 				}
 			}
 		} catch (SignatureException | ReturnCodeException | ResultCodeException e) {
