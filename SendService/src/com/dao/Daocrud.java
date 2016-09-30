@@ -33,37 +33,43 @@ import com.google.gson.Gson;
 
 public class Daocrud {
 
-	// public static void main(String[] args) {
-	// new Daocrud();
-	// }
-	//
-	// public Daocrud() {
-	// // try {
-	// // updateConsumeOrder2("8effde89737ca99b");
-	// // } catch (CommonException e) {
-	// // // TODO Auto-generated catch block
-	// // e.printStackTrace();
-	// // }
-	// // System.out.println(getMchOrder("8effde89737ca99b"));
-	// // try {
-	// // System.out.println(queryRecordCount("8effde89737ca99b"));
-	// // } catch (CommonException e) {
-	// // // TODO Auto-generated catch block
-	// // e.printStackTrace();
-	// // }
-	//
-	// try {
-	// // insertConsumeOrder("4", "8effde89737ca99b");
-	// // System.out.println(queryCardRemainTimes(1 + ""));
-	// List<BeautyCard> queryBeautyCard = queryBeautyCard("爱看到美");
-	// for(int i = 0;i<queryBeautyCard.size();i++){
-	// System.out.println(queryBeautyCard.get(i).getCustom_times());
-	// }
-	// } catch (CommonException e) {
-	// // TODO Auto-generated catch block
-	// e.printStackTrace();
-	// }
-	// }
+//	public static void main(String[] args) {
+//		new Daocrud();
+//	}
+//
+//	public Daocrud() {
+//		// try {
+//		// updateConsumeOrder2("8effde89737ca99b");
+//		// } catch (CommonException e) {
+//		// // TODO Auto-generated catch block
+//		// e.printStackTrace();
+//		// }
+//		// System.out.println(getMchOrder("8effde89737ca99b"));
+//		// try {
+//		// System.out.println(queryRecordCount("8effde89737ca99b"));
+//		// } catch (CommonException e) {
+//		// // TODO Auto-generated catch block
+//		// e.printStackTrace();
+//		// }
+////
+////		try {
+////			// insertConsumeOrder("4", "8effde89737ca99b");
+////			// System.out.println(queryCardRemainTimes(1 + ""));
+////			List<BeautyCard> queryBeautyCard = queryBeautyCard("爱看到美");
+////			for (int i = 0; i < queryBeautyCard.size(); i++) {
+////				System.out.println(queryBeautyCard.get(i).getCustom_times());
+////			}
+////		} catch (CommonException e) {
+////			// TODO Auto-generated catch block
+////			e.printStackTrace();
+////		}
+//		try {
+//			InsertCustomer("jiba", "123", "40~55", "Man", "爱看到美", "1");
+//		} catch (CommonException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//	}
 
 	/**
 	 * 美容院注册
@@ -122,11 +128,11 @@ public class Daocrud {
 	 * 
 	 * @throws CommonException
 	 */
-	public void InsertCustomer(String customer_name, String password, String age, String sex, String bind_beauty)
-			throws CommonException {
+	public void InsertCustomer(String customer_name, String password, String age, String sex, String bind_beauty
+			) throws CommonException {
 		PreparedStatement prepareStatement = null;
 		Connection conn = JdbcUtils.getConn();
-		String sql = "insert into customer values(null,?,?,?,?,?,?)";
+		String sql = "insert into customer values(null,?,?,?,?,?,?,?)";
 		try {
 			prepareStatement = conn.prepareStatement(sql);
 			prepareStatement.setString(1, customer_name);
@@ -136,6 +142,7 @@ public class Daocrud {
 			prepareStatement.setString(5, bind_beauty);
 			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 			prepareStatement.setString(6, dateFormat.format(new Date()));
+			prepareStatement.setString(7, "1");
 			prepareStatement.executeUpdate();
 			JdbcUtils.close(null, prepareStatement, conn);
 		} catch (SQLException e) {
@@ -982,11 +989,11 @@ public class Daocrud {
 	 * @return
 	 * @throws Exception
 	 */
-	public boolean customerLogin(String customer_name, String password, String bind_beauty) throws Exception {
+	public int customerLogin(String customer_name, String password, String bind_beauty) {
 		PreparedStatement prepareStatement;
 		ResultSet executeQuery;
 		Connection conn = JdbcUtils.getConn();
-		String sql = "select PASSWORD from customer where CUSTOMER_NAME = ? and BIND_BEAUTY = ?";
+		String sql = "select PASSWORD , TYPE from customer where CUSTOMER_NAME = ? and BIND_BEAUTY = ?";
 		try {
 			prepareStatement = conn.prepareStatement(sql);
 			prepareStatement.setString(1, customer_name);
@@ -994,19 +1001,18 @@ public class Daocrud {
 			executeQuery = prepareStatement.executeQuery();
 			if (executeQuery.next()) {
 				if (password.equals(executeQuery.getString("PASSWORD"))) {
-					return true;
+					return executeQuery.getInt("TYPE");// 密码正确
 				} else {
-					return false;
+					return 0;// 密码错误
 				}
 			} else {
-				throw new Exception("用户尚未注册或者不是此美容院绑定会员");
+				return -1;// 没有查询到此用户
 			}
 		} catch (SQLException e) {
 			LogRecord.writeLog(e.getMessage());
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return false;
+		return -2;// 查询错误，登陆失败
 	}
 
 	/**
